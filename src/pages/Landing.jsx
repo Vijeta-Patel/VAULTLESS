@@ -309,6 +309,7 @@ const s = {
   cards: {
     display: 'flex', gap: 20, flexWrap: 'wrap',
     justifyContent: 'center', marginBottom: 64, width: '100%',
+    color: '#dc10f3',
   },
   card: {
     flex: '1 1 240px', maxWidth: 290,
@@ -323,10 +324,10 @@ const s = {
     background: 'linear-gradient(90deg, transparent, rgba(0,255,136,0.4), transparent)',
   },
   cardTitle: {
-    color: '#e8e8f0', fontSize: 14, fontWeight: 700,
+    color: '#5161cd', fontSize: 14, fontWeight: 700,
     letterSpacing: '0.04em', marginBottom: 10,
   },
-  cardDesc: { color: '#555', fontSize: 13, lineHeight: 1.7, marginBottom: 16 },
+  cardDesc: { color: '#ffffff', fontSize: 13, lineHeight: 1.7, marginBottom: 16 },
   cardTag: { fontFamily: "'Courier New', monospace", fontSize: 11, opacity: 0.85 },
   statsBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
