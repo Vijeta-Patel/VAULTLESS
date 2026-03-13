@@ -52,7 +52,7 @@ export default function Landing() {
 
         {/* Sub */}
         <p style={s.sub}>
-          It can't be stolen. It can't be copied. And if someone forces you to use it — they've already lost.
+          Password can be stolen. Behaviours can't.
         </p>
 
         {/* CTAs */}
@@ -85,7 +85,7 @@ export default function Landing() {
           {[
             { title: 'Behavioural DNA', desc: 'Keystroke timing + mouse dynamics. 64-dimensional vector unique to you. No biometric stored anywhere.', tag: 'Float32Array[64]', tagColor: '#00d4ff' },
             { title: 'Ethereum Trust Layer', desc: 'Every auth event, failed attempt, and duress trigger logged permanently on Sepolia. Immutable. Public. Forever.', tag: 'keccak256 · Sepolia', tagColor: '#00d4ff' },
-            { title: 'Anti-Coercion Protocol', desc: 'Stress signature detected in rhythm. Ghost session loads. Real account locks silently. Blockchain records the attack.', tag: 'DuressActivated · on-chain', tagColor: '#ff6b35' },
+            { title: 'Anti-Coercion Protocol', desc: 'Stress signature detected in rhythm. Ghost session loads.Blockchain records the attack.', tag: 'DuressActivated · on-chain', tagColor: '#ff6b35' },
           ].map(card => (
             <div key={card.title} style={s.card}>
               <div style={s.cardTopEdge} />
@@ -120,9 +120,16 @@ export default function Landing() {
 }
 
 function animateParticles(canvas) {
-  if (!canvas) return;
+  if (!canvas) return () => {};
   const ctx = canvas.getContext('2d');
   let animId;
+
+  const mouse = { x: null, y: null };
+
+  window.addEventListener("mousemove", (e) => {
+    mouse.x = e.clientX;
+    mouse.y = e.clientY;
+  });
 
   function resize() {
     canvas.width = window.innerWidth;
@@ -131,51 +138,89 @@ function animateParticles(canvas) {
   resize();
   window.addEventListener('resize', resize);
 
-  const particles = Array.from({ length: 100 }, () => ({
+  // 🔥 more particles
+  const particles = Array.from({ length: 180 }, () => ({
     x: Math.random() * canvas.width,
     y: Math.random() * canvas.height,
-    vx: (Math.random() - 0.5) * 0.4,
-    vy: (Math.random() - 0.5) * 0.4,
-    r: Math.random() * 1.5 + 0.5,
+    vx: (Math.random() - 0.5) * 0.8,
+    vy: (Math.random() - 0.5) * 0.8,
+    r: Math.random() * 1.8 + 0.6,
     cyan: Math.random() < 0.1,
   }));
 
   function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     for (let i = 0; i < particles.length; i++) {
       const p = particles[i];
-      p.x += p.vx; p.y += p.vy;
+
+      // normal motion
+      p.x += p.vx;
+      p.y += p.vy;
+
       if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
       if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+      // 🧲 cursor attraction
+      if (mouse.x && mouse.y) {
+        const dx = mouse.x - p.x;
+        const dy = mouse.y - p.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < 200) {
+          p.x += dx * 0.02;
+          p.y += dy * 0.02;
+        }
+      }
+
+      // draw particle
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = p.cyan ? 'rgba(0,212,255,0.5)' : 'rgba(0,255,136,0.55)';
+      ctx.fillStyle = p.cyan
+        ? 'rgba(0,212,255,0.6)'
+        : 'rgba(0,255,136,0.65)';
       ctx.fill();
+
+      // draw connections
       for (let j = i + 1; j < particles.length; j++) {
         const q = particles[j];
-        const dx = p.x - q.x, dy = p.y - q.y;
+        const dx = p.x - q.x;
+        const dy = p.y - q.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < 140) {
+
+        if (dist < 150) {
           ctx.beginPath();
           ctx.moveTo(p.x, p.y);
           ctx.lineTo(q.x, q.y);
-          ctx.strokeStyle = `rgba(0,255,136,${0.07 * (1 - dist / 140)})`;
-          ctx.lineWidth = 0.5;
+          ctx.strokeStyle = `rgba(0,255,136,${0.08 * (1 - dist / 150)})`;
+          ctx.lineWidth = 0.6;
           ctx.stroke();
         }
       }
     }
+
     animId = requestAnimationFrame(draw);
   }
+
   draw();
-  return () => { cancelAnimationFrame(animId); window.removeEventListener('resize', resize); };
+
+  return () => {
+    cancelAnimationFrame(animId);
+    window.removeEventListener('resize', resize);
+  };
 }
 
 const s = {
   root: {
-    minHeight: '100vh', background: '#000', color: '#e8e8f0',
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-    position: 'relative', overflowX: 'hidden',
+   root: {
+  minHeight: '100vh',
+  background: 'transparent',
+  color: '#e8e8f0',
+  fontFamily: "'Inter', 'Segoe UI', sans-serif",
+  position: 'relative',
+  zIndex: 1,
+  overflowX: 'hidden',
+}
   },
   canvas: {
     position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
@@ -232,7 +277,7 @@ const s = {
     backgroundClip: 'text',
   },
   sub: {
-    color: '#888', fontSize: 20, lineHeight: 1.7,
+    color: '#ffffff', fontSize: 20, lineHeight: 1.7,
     maxWidth: 640, marginBottom: 48, fontWeight: 300,
   },
   actions: {
@@ -264,6 +309,7 @@ const s = {
   cards: {
     display: 'flex', gap: 20, flexWrap: 'wrap',
     justifyContent: 'center', marginBottom: 64, width: '100%',
+    color: '#dc10f3',
   },
   card: {
     flex: '1 1 240px', maxWidth: 290,
@@ -278,10 +324,10 @@ const s = {
     background: 'linear-gradient(90deg, transparent, rgba(0,255,136,0.4), transparent)',
   },
   cardTitle: {
-    color: '#e8e8f0', fontSize: 14, fontWeight: 700,
+    color: '#5161cd', fontSize: 14, fontWeight: 700,
     letterSpacing: '0.04em', marginBottom: 10,
   },
-  cardDesc: { color: '#555', fontSize: 13, lineHeight: 1.7, marginBottom: 16 },
+  cardDesc: { color: '#ffffff', fontSize: 13, lineHeight: 1.7, marginBottom: 16 },
   cardTag: { fontFamily: "'Courier New', monospace", fontSize: 11, opacity: 0.85 },
   statsBar: {
     display: 'flex', alignItems: 'center', justifyContent: 'center',
