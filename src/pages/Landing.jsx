@@ -1,26 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useVaultless } from '../lib/VaultlessContext';
-import HexLoader from '../components/HexLoader';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { demoMode, setDemoMode } = useVaultless();
-  const [loading, setLoading] = useState(true);
-  const [visible, setVisible] = useState(false);
+  const [visible] = useState(true);
   const canvasRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
-    setTimeout(() => setVisible(true), 100);
     const cleanup = animateParticles(canvasRef.current);
     return cleanup;
   }, []);
 
   return (
     <div style={s.root}>
-      {loading && <HexLoader onFinish={() => setLoading(false)} />}
-
       <canvas ref={canvasRef} style={s.canvas} />
       <div style={s.scanline} />
 
