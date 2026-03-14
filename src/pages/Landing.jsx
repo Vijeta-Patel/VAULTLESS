@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useVaultless } from "../lib/VaultlessContext";
+import { useViewport } from "../hooks/useViewport";
 import HexLoader from "../components/HexLoader";
 
 export default function Landing() {
   const navigate = useNavigate();
   const { demoMode, setDemoMode } = useVaultless();
+  const { isMobile } = useViewport();
   const [loading, setLoading] = useState(true);
   const canvasRef = useRef(null);
 
@@ -17,6 +19,23 @@ export default function Landing() {
   }, []);
 
   const handleLoaderFinish = useCallback(() => setLoading(false), []);
+  const ui = {
+    demoToggle: isMobile ? { ...s.demoToggle, top: 'auto', bottom: 16, right: 12, left: 12, justifyContent: 'space-between', padding: '8px 12px' } : s.demoToggle,
+    hero: isMobile ? { ...s.hero, padding: '96px 16px 104px' } : s.hero,
+    badge: isMobile ? { ...s.badge, marginBottom: 28, padding: '7px 14px' } : s.badge,
+    badgeText: isMobile ? { ...s.badgeText, fontSize: 10, letterSpacing: 2 } : s.badgeText,
+    sub: isMobile ? { ...s.sub, fontSize: 13, letterSpacing: '0.05em', marginBottom: 34 } : s.sub,
+    ctaPrimary: isMobile ? { ...s.ctaPrimary, width: '100%', maxWidth: 320, padding: '14px 20px' } : s.ctaPrimary,
+    glitchBlock: isMobile ? { ...s.glitchBlock, marginBottom: 40 } : s.glitchBlock,
+    glitchLine: isMobile ? { ...s.glitchLine, fontSize: 11, letterSpacing: '0.1em' } : s.glitchLine,
+    card: isMobile ? { ...s.card, flex: '1 1 100%', maxWidth: '100%', padding: '22px 18px' } : s.card,
+    statsBar: isMobile ? { ...s.statsBar, flexDirection: 'column', padding: '18px 16px', gap: 0, alignItems: 'stretch' } : s.statsBar,
+    statWrap: isMobile ? { width: '100%' } : { display: 'flex', alignItems: 'center' },
+    stat: isMobile ? { ...s.stat, padding: '18px 0' } : s.stat,
+    statNum: isMobile ? { ...s.statNum, fontSize: 32 } : s.statNum,
+    statLabel: isMobile ? { ...s.statLabel, fontSize: 14, lineHeight: 1.5, maxWidth: '100%' } : s.statLabel,
+    statDivider: isMobile ? { ...s.statDivider, width: '100%', height: 1 } : s.statDivider,
+  };
 
   return (
     <>
@@ -27,7 +46,7 @@ export default function Landing() {
         <canvas ref={canvasRef} style={s.canvas} />
         <div style={s.scanline} />
 
-        <div style={s.demoToggle}>
+        <div style={ui.demoToggle}>
           <span style={s.demoLabel}>DEMO MODE</span>
           <button
             style={{ ...s.toggle, background: demoMode ? '#00ff88' : '#333' }}
@@ -37,11 +56,11 @@ export default function Landing() {
           </button>
         </div>
 
-        <div style={s.hero}>
+        <div style={ui.hero}>
 
-          <div style={s.badge}>
+          <div style={ui.badge}>
             <span style={s.badgeDot} />
-            <span style={s.badgeText}>LIVE ON ETHEREUM SEPOLIA</span>
+            <span style={ui.badgeText}>LIVE ON ETHEREUM SEPOLIA</span>
           </div>
 
           <h1 style={s.headline}>
@@ -50,13 +69,13 @@ export default function Landing() {
             <span style={s.hl2}>is how you move.</span>
           </h1>
 
-          <p style={s.sub}>
+          <p style={ui.sub}>
             Password can be stolen. Behaviours can't.
           </p>
 
           <div style={s.actions}>
             <button
-              style={s.ctaPrimary}
+              style={ui.ctaPrimary}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               onClick={() => navigate('/gmail')}
@@ -65,11 +84,11 @@ export default function Landing() {
             </button>
           </div>
 
-          <div style={s.glitchBlock}>
-            <p style={{ ...s.glitchLine, animation: 'flicker 3.5s infinite 0.5s' }}>
+          <div style={ui.glitchBlock}>
+            <p style={{ ...ui.glitchLine, animation: 'flicker 3.5s infinite 0.5s' }}>
               Your password is already dead.
             </p>
-            <p style={s.glitchLine}>
+            <p style={ui.glitchLine}>
               Welcome to{' '}
               <span
                 id="glitch-vaultless"
@@ -111,7 +130,7 @@ export default function Landing() {
             ].map(card => (
               <div
                 key={card.title}
-                style={s.card}
+                style={ui.card}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 30px rgba(0,255,136,0.5)'}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = '0 0 20px rgba(0,255,136,0.2)'}
               >
@@ -124,17 +143,17 @@ export default function Landing() {
             ))}
           </div>
 
-          <div style={s.statsBar}>
+          <div style={ui.statsBar}>
             {[
               { num: '4.5B', label: 'records breached in 2023' },
               { num: '0', label: 'records stored in VAULTLESS' },
               { num: '∞', label: 'every auth on-chain forever' },
             ].map((stat, i) => (
-              <div key={stat.label} style={{ display: 'flex', alignItems: 'center' }}>
-                {i > 0 && <div style={s.statDivider} />}
-                <div style={s.stat}>
-                  <div style={s.statNum}>{stat.num}</div>
-                  <div style={s.statLabel}>{stat.label}</div>
+              <div key={stat.label} style={ui.statWrap}>
+                {i > 0 && <div style={ui.statDivider} />}
+                <div style={ui.stat}>
+                  <div style={ui.statNum}>{stat.num}</div>
+                  <div style={ui.statLabel}>{stat.label}</div>
                 </div>
               </div>
             ))}

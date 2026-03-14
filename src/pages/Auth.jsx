@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from 'recharts';
 import { useKeystrokeDNA, useMouseDNA, buildCombinedVector, cosineSimilarity, detectStress, classifyScore } from '../hooks/behaviouralEngine';
+import { useViewport } from '../hooks/useViewport';
 import { useVaultless } from '../lib/VaultlessContext';
 import { getContract, getSigner, generateNullifier } from '../lib/ethereum';
 import { sendDuressAlert } from '../lib/duressAlert';
@@ -11,6 +12,7 @@ const PHRASE = 'Secure my account';
 export default function Auth() {
   const navigate = useNavigate();
   const { enrollmentVector, enrollmentKeystroke, enrollmentMouse, walletAddress, recoveryEmail, isEnrolled, setIsDuressMode, setLastAuthScore, addEtherscanLink, demoMode } = useVaultless();
+  const { isMobile } = useViewport();
 
   const [phase, setPhase] = useState('ready'); // ready | typing | scoring | result
   const [currentInput, setCurrentInput] = useState('');
@@ -179,37 +181,51 @@ export default function Auth() {
     duress: { icon: '⚠', label: 'DURESS DETECTED', color: '#ffaa00' },
     rejected: { icon: '✗', label: 'IDENTITY REJECTED', color: '#ff4444' },
   };
+  const ui = {
+    header: isMobile ? { ...styles.header, padding: '16px 18px' } : styles.header,
+    container: isMobile ? { ...styles.container, padding: '28px 12px 40px' } : styles.container,
+    card: isMobile ? { ...styles.card, borderRadius: 10, padding: '28px 18px' } : styles.card,
+    title: isMobile ? { ...styles.title, fontSize: 22, margin: '0 0 12px' } : styles.title,
+    desc: isMobile ? { ...styles.desc, fontSize: 14, lineHeight: 1.65 } : styles.desc,
+    phrase: isMobile ? { ...styles.phrase, fontSize: 18, margin: '18px 0', lineHeight: 1.4 } : styles.phrase,
+    cta: isMobile ? { ...styles.cta, width: '100%', padding: '13px 18px', fontSize: 12, letterSpacing: 1.2 } : styles.cta,
+    typeInput: isMobile ? { ...styles.typeInput, fontSize: 16, padding: '14px 12px', letterSpacing: 1 } : styles.typeInput,
+    graphContainer: isMobile ? { ...styles.graphContainer, padding: '12px' } : styles.graphContainer,
+    scoreNum: isMobile ? { ...styles.scoreNum, fontSize: 48 } : styles.scoreNum,
+    barLabels: isMobile ? { ...styles.barLabels, fontSize: 9, letterSpacing: 1 } : styles.barLabels,
+    stressBar: isMobile ? { ...styles.stressBar, flexWrap: 'wrap', gap: 8, justifyContent: 'center' } : styles.stressBar,
+  };
 
   return (
     <div style={styles.root}>
-      <div style={styles.header}>
+      <div style={ui.header}>
         <button style={styles.back} onClick={() => navigate('/')}>← VAULTLESS</button>
         <div style={styles.step}>AUTHENTICATION</div>
       </div>
 
-      <div style={styles.container}>
-        <div style={styles.card}>
+      <div style={ui.container}>
+        <div style={ui.card}>
           {phase === 'ready' && (
             <>
-              <h2 style={styles.title}>Authenticate</h2>
+              <h2 style={ui.title}>Authenticate</h2>
               {!isEnrolled && !demoMode && (
                 <div style={styles.warning}>⚠ No enrollment found. <button style={styles.inlineLink} onClick={() => navigate('/enroll')}>Enroll first →</button></div>
               )}
-              <p style={styles.desc}>Type the same phrase you enrolled with.</p>
-              <div style={styles.phrase}>"{PHRASE}"</div>
-              <button style={styles.cta} onClick={() => setPhase('typing')}>Begin Authentication</button>
+              <p style={ui.desc}>Type the same phrase you enrolled with.</p>
+              <div style={ui.phrase}>"{PHRASE}"</div>
+              <button style={ui.cta} onClick={() => setPhase('typing')}>Begin Authentication</button>
             </>
           )}
 
           {phase === 'typing' && (
             <>
-              <h2 style={styles.title}>Type the phrase</h2>
-              <div style={styles.phrase}>"{PHRASE}"</div>
+              <h2 style={ui.title}>Type the phrase</h2>
+              <div style={ui.phrase}>"{PHRASE}"</div>
               <p style={styles.hint}>Press Enter when done</p>
 
               <input
                 ref={inputRef}
-                style={styles.typeInput}
+                style={ui.typeInput}
                 value={currentInput}
                 onChange={e => setCurrentInput(e.target.value)}
                 onKeyDown={keystroke.onKeyDown}
@@ -226,7 +242,7 @@ export default function Auth() {
               />
 
               {graphData.length > 2 && (
-                <div style={styles.graphContainer}>
+                <div style={ui.graphContainer}>
                   <div style={styles.graphLabel}>DNA PATTERN FORMING</div>
                   <ResponsiveContainer width="100%" height={100}>
                     <LineChart data={graphData}>
@@ -238,7 +254,7 @@ export default function Auth() {
               )}
 
               {currentInput.trim() === PHRASE && (
-                <button style={styles.cta} onClick={processAuth}>Verify Identity →</button>
+                <button style={ui.cta} onClick={processAuth}>Verify Identity →</button>
               )}
             </>
           )}
@@ -246,7 +262,7 @@ export default function Auth() {
           {(phase === 'scoring' || phase === 'result') && (
             <>
               <div style={styles.scoreDisplay}>
-                <div style={{ ...styles.scoreNum, color: scoreColor }}>
+                <div style={{ ...ui.scoreNum, color: scoreColor }}>
                   {score !== null ? (score * 100).toFixed(1) + '%' : '—'}
                 </div>
                 <div style={styles.scoreLabel}>SIMILARITY SCORE</div>
@@ -258,14 +274,14 @@ export default function Auth() {
                 <div style={{ ...styles.barMarker, left: '60%' }} title="Duress threshold" />
                 <div style={{ ...styles.barMarker, left: '70%', borderColor: '#00ff88' }} title="Auth threshold" />
               </div>
-              <div style={styles.barLabels}>
+              <div style={ui.barLabels}>
                 <span style={{ color: '#ff4444' }}>REJECTED</span>
                 <span style={{ color: '#ffaa00' }}>DURESS</span>
                 <span style={{ color: '#00ff88' }}>AUTH</span>
               </div>
 
               {stressScore > 0 && (
-                <div style={styles.stressBar}>
+                <div style={ui.stressBar}>
                   <span style={styles.stressLabel}>STRESS LEVEL</span>
                   <div style={styles.stressTrack}>
                     <div style={{ ...styles.stressFill, width: `${stressScore}%`, background: stressScore > 60 ? '#ffaa00' : '#333' }} />
@@ -283,7 +299,7 @@ export default function Auth() {
               {statusMsg && <div style={styles.status}>{statusMsg}</div>}
 
               {result === 'rejected' && (
-                <button style={{ ...styles.cta, marginTop: 24 }} onClick={() => { setPhase('ready'); setCurrentInput(''); keystroke.reset(); mouse.reset(); setScore(null); setResult(null); }}>
+                <button style={{ ...ui.cta, marginTop: 24 }} onClick={() => { setPhase('ready'); setCurrentInput(''); keystroke.reset(); mouse.reset(); setScore(null); setResult(null); }}>
                   Try Again
                 </button>
               )}

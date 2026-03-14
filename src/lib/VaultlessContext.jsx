@@ -46,6 +46,14 @@ function saveToStorage({ enrollmentVector, enrollmentKeystroke, enrollmentMouse,
 
 function loadDemoMode() {
   try {
+    const saved = localStorage.getItem(DEMO_MODE_STORAGE_KEY);
+    if (saved === 'true') return true;
+    if (saved === 'false') return false;
+  } catch {
+    // ignore storage failures
+  }
+
+  try {
     const provider = window?.ethereum;
     const hasMetaMask = Boolean(
       provider?.isMetaMask ||
@@ -55,14 +63,6 @@ function loadDemoMode() {
     if (hasMetaMask) return false;
   } catch {
     // ignore provider detection failures
-  }
-
-  try {
-    const saved = localStorage.getItem(DEMO_MODE_STORAGE_KEY);
-    if (saved === 'true') return true;
-    if (saved === 'false') return false;
-  } catch {
-    // ignore storage failures
   }
 
   return import.meta.env.VITE_DEMO_MODE === 'true';
@@ -123,18 +123,6 @@ export function VaultlessProvider({ children }) {
       console.log('[VAULTLESS] Stored holdTimes:', enrollmentKeystroke.holdTimes?.length, 'flightTimes:', enrollmentKeystroke.flightTimes?.length);
     }
   }, [enrollmentVector, enrollmentKeystroke, enrollmentMouse, walletAddress, recoveryEmail, isEnrolled]);
-
-  useEffect(() => {
-    const provider = window?.ethereum;
-    const hasMetaMask = Boolean(
-      provider?.isMetaMask ||
-      provider?.providers?.some((item) => item?.isMetaMask)
-    );
-
-    if (hasMetaMask && demoMode) {
-      setDemoMode(false);
-    }
-  }, [demoMode]);
 
   const addEtherscanLink = (label, txHash) => {
     setEtherscanLinks(prev => [...prev, {

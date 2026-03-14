@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, ReferenceLine } from 'recharts';
 import { useKeystrokeDNA, useMouseDNA, buildCombinedVector } from '../hooks/behaviouralEngine';
+import { useViewport } from '../hooks/useViewport';
 import { useVaultless } from '../lib/VaultlessContext';
 import { getContract, getSigner, vectorToHash, isMobileBrowser, canOpenMetaMaskDeepLink } from '../lib/ethereum';
 
@@ -12,6 +13,7 @@ export default function Enroll() {
   const navigate = useNavigate();
   const { setEnrollmentVector, setEnrollmentKeystroke, setEnrollmentMouse, setWalletAddress, setRecoveryEmail, setIsEnrolled, addEtherscanLink, demoMode } = useVaultless();
   const showSensorDebug = import.meta.env.VITE_SHOW_SENSOR_DEBUG === 'true';
+  const { isMobile } = useViewport();
 
   const [phase, setPhase] = useState('intro'); // intro | capturing | processing | done | error
   const [sampleCount, setSampleCount] = useState(0);
@@ -209,6 +211,22 @@ export default function Enroll() {
     : sensorDiag.platform === 'android' && sensorDiag.browser === 'chrome'
       ? 'Sensor access is blocked. In Chrome Android, allow Motion sensors in Site settings, then reload.'
       : 'Sensor access is blocked. Enable motion/orientation access in browser settings, then reload.';
+  const ui = {
+    header: isMobile ? { ...styles.header, padding: '16px 18px' } : styles.header,
+    container: isMobile ? { ...styles.container, padding: '28px 12px 40px' } : styles.container,
+    card: isMobile ? { ...styles.card, borderRadius: 10, padding: '28px 18px' } : styles.card,
+    title: isMobile ? { ...styles.title, fontSize: 22, margin: '0 0 12px' } : styles.title,
+    desc: isMobile ? { ...styles.desc, fontSize: 14, lineHeight: 1.65, marginBottom: 24 } : styles.desc,
+    phrase: isMobile ? { ...styles.phrase, fontSize: 18, margin: '18px 0', lineHeight: 1.4 } : styles.phrase,
+    steps: isMobile ? { ...styles.steps, fontSize: 12, lineHeight: 1.8, marginBottom: 24 } : styles.steps,
+    cta: isMobile ? { ...styles.cta, width: '100%', padding: '13px 18px', fontSize: 12, letterSpacing: 1.2 } : styles.cta,
+    ctaSmall: isMobile ? { ...styles.ctaSmall, width: '100%' } : styles.ctaSmall,
+    recoveryInput: isMobile ? { ...styles.recoveryInput, fontSize: 16 } : styles.recoveryInput,
+    typeInput: isMobile ? { ...styles.typeInput, fontSize: 16, letterSpacing: 1, padding: '14px 12px' } : styles.typeInput,
+    graphContainer: isMobile ? { ...styles.graphContainer, marginTop: 20, padding: '12px' } : styles.graphContainer,
+    graphLegend: isMobile ? { ...styles.graphLegend, gap: 12, fontSize: 10, flexWrap: 'wrap' } : styles.graphLegend,
+    sensorMiniRow: isMobile ? { ...styles.sensorMiniRow, alignItems: 'flex-start' } : styles.sensorMiniRow,
+  };
 
   const handleKeyUp = (e) => {
     keystroke.onKeyUp(e);
@@ -387,34 +405,34 @@ export default function Enroll() {
   };
 
   return (
-    <div style={styles.root}>
-      <div style={styles.header}>
+      <div style={styles.root}>
+      <div style={ui.header}>
         <button style={styles.back} onClick={() => navigate('/')}>← VAULTLESS</button>
         <div style={styles.step}>ENROLLMENT</div>
       </div>
 
-      <div style={styles.container}>
+      <div style={ui.container}>
         {phase === 'intro' && (
-          <div style={styles.card}>
-            <h2 style={styles.title}>Enroll Your Identity</h2>
-            <p style={styles.desc}>
+          <div style={ui.card}>
+            <h2 style={ui.title}>Enroll Your Identity</h2>
+            <p style={ui.desc}>
               You'll type <strong style={{ color: '#00ff88' }}>"{PHRASE}"</strong> three times.<br />
               Your keystroke rhythm becomes your cryptographic identity.
             </p>
-            <ul style={styles.steps}>
+            <ul style={ui.steps}>
               <li>Type naturally — don't try to be consistent</li>
               <li>Your behavioural DNA is captured, never stored</li>
               <li>The hash is committed permanently to Ethereum</li>
             </ul>
             <input
-              style={styles.recoveryInput}
+              style={ui.recoveryInput}
               type="email"
               value={backupEmail}
               onChange={(e) => setBackupEmail(e.target.value)}
               placeholder="Recovery email for duress alerts"
               autoComplete="email"
             />
-            <button style={styles.cta} onClick={connectWallet}>
+            <button style={ui.cta} onClick={connectWallet}>
               {demoMode ? 'Start Enrollment (Demo)' : 'Connect MetaMask & Begin'}
             </button>
             {!demoMode && isMobileBrowser() && (
@@ -427,12 +445,12 @@ export default function Enroll() {
         )}
 
         {(phase === 'capturing') && (
-          <div style={styles.card}>
+          <div style={ui.card}>
             <div style={styles.sampleBadge}>
               Sample {sampleCount + 1} of {REQUIRED_SAMPLES}
             </div>
-            <h2 style={styles.title}>Type the phrase</h2>
-            <div style={styles.phrase}>"{PHRASE}"</div>
+            <h2 style={ui.title}>Type the phrase</h2>
+            <div style={ui.phrase}>"{PHRASE}"</div>
             <p style={styles.hint}>Press Enter when done</p>
 
             {showMobileSensorUi && (
@@ -471,7 +489,7 @@ export default function Enroll() {
 
             <input
               ref={inputRef}
-              style={styles.typeInput}
+              style={ui.typeInput}
               value={currentInput}
               onChange={handleTyping}
               onKeyDown={keystroke.onKeyDown}
@@ -488,7 +506,7 @@ export default function Enroll() {
             />
 
             {graphData.length > 2 && (
-              <div style={styles.graphContainer}>
+              <div style={ui.graphContainer}>
                 <div style={styles.graphLabel}>KEYSTROKE EKG — LIVE</div>
                 <ResponsiveContainer width="100%" height={120}>
                   <LineChart data={graphData}>
@@ -498,7 +516,7 @@ export default function Enroll() {
                     <YAxis hide />
                   </LineChart>
                 </ResponsiveContainer>
-                <div style={styles.graphLegend}>
+                <div style={ui.graphLegend}>
                   <span style={{ color: '#00ff88' }}>■ Hold Time</span>
                   <span style={{ color: '#0088ff' }}>■ Flight Time</span>
                 </div>
@@ -506,7 +524,7 @@ export default function Enroll() {
             )}
 
             {showMobileSensorUi && gyroGraphData.length > 0 && (
-              <div style={styles.graphContainer}>
+              <div style={ui.graphContainer}>
                 <div style={styles.graphLabel}>GYROSCOPE ACTIVITY — LIVE</div>
                 <ResponsiveContainer width="100%" height={120}>
                   <LineChart data={gyroGraphData}>
@@ -515,14 +533,14 @@ export default function Enroll() {
                     <YAxis hide />
                   </LineChart>
                 </ResponsiveContainer>
-                <div style={styles.graphLegend}>
+                <div style={ui.graphLegend}>
                   <span style={{ color: '#ff6600' }}>■ Gyro Magnitude</span>
                 </div>
               </div>
             )}
 
             {showMobileSensorUi && !motionAvailable && gyroGraphData.length === 0 && (
-              <div style={styles.graphContainer}>
+              <div style={ui.graphContainer}>
                 <div style={styles.graphLabel}>GYROSCOPE ACTIVITY — NOT AVAILABLE</div>
                 <div style={{ color: '#666', fontSize: 12, padding: '20px' }}>
                   Motion sensors not accessible. Grant permission or use a compatible device for enhanced security.
@@ -531,7 +549,7 @@ export default function Enroll() {
             )}
 
             {showMobileSensorUi && showSensorDebug && touchGraphData.length > 0 && (
-              <div style={styles.graphContainer}>
+              <div style={ui.graphContainer}>
                 <div style={styles.graphLabel}>TOUCH PRESSURE — LIVE</div>
                 <ResponsiveContainer width="100%" height={120}>
                   <LineChart data={touchGraphData}>
@@ -540,7 +558,7 @@ export default function Enroll() {
                     <YAxis hide />
                   </LineChart>
                 </ResponsiveContainer>
-                <div style={styles.graphLegend}>
+                <div style={ui.graphLegend}>
                   <span style={{ color: '#ff00ff' }}>■ Touch Pressure</span>
                 </div>
               </div>
@@ -549,15 +567,15 @@ export default function Enroll() {
             {showMobileSensorUi && (
               <div style={styles.sensorMiniCard}>
                 <div style={styles.sensorMiniTitle}>SENSOR STATUS</div>
-                <div style={styles.sensorMiniRow}>
+                <div style={ui.sensorMiniRow}>
                   <span style={styles.sensorMiniKey}>Health</span>
                   <span style={styles.sensorMiniVal}>{sensorHealthText}</span>
                 </div>
-                <div style={styles.sensorMiniRow}>
+                <div style={ui.sensorMiniRow}>
                   <span style={styles.sensorMiniKey}>Permissions</span>
                   <span style={styles.sensorMiniVal}>{sensorsEnabled ? 'Granted' : 'Not granted'}</span>
                 </div>
-                <div style={styles.sensorMiniRow}>
+                <div style={ui.sensorMiniRow}>
                   <span style={styles.sensorMiniKey}>Gyro Activity</span>
                   <span style={styles.sensorMiniVal}>{sensorActivityLive ? 'Live' : 'Waiting for movement'}</span>
                 </div>
@@ -567,7 +585,7 @@ export default function Enroll() {
             {statusMsg && <div style={styles.status}>{statusMsg}</div>}
 
             {currentInput === PHRASE && (
-              <button style={styles.ctaSmall} onClick={captureComplete}>
+                <button style={ui.ctaSmall} onClick={captureComplete}>
                 Capture Sample {sampleCount + 1} →
               </button>
             )}
@@ -575,19 +593,19 @@ export default function Enroll() {
         )}
 
         {phase === 'processing' && (
-          <div style={styles.card}>
+          <div style={ui.card}>
             <div style={styles.spinner}>⬡</div>
-            <h2 style={styles.title}>Committing to Ethereum</h2>
+            <h2 style={ui.title}>Committing to Ethereum</h2>
             <p style={styles.status}>{statusMsg}</p>
             {walletAddr && <div style={styles.addr}>{walletAddr}</div>}
           </div>
         )}
 
         {phase === 'done' && (
-          <div style={styles.card}>
+          <div style={ui.card}>
             <div style={styles.successIcon}>✓</div>
-            <h2 style={styles.title}>Identity Enrolled</h2>
-            <p style={styles.desc}>Your Behavioural DNA is now permanent on Ethereum.</p>
+            <h2 style={ui.title}>Identity Enrolled</h2>
+            <p style={ui.desc}>Your Behavioural DNA is now permanent on Ethereum.</p>
             {txHash && (
               <a
                 style={styles.etherscanLink}
@@ -599,7 +617,7 @@ export default function Enroll() {
               </a>
             )}
             <div style={styles.actions}>
-              <button style={styles.cta} onClick={() => navigate('/auth')}>
+              <button style={ui.cta} onClick={() => navigate('/auth')}>
                 Authenticate Now →
               </button>
             </div>
@@ -607,10 +625,10 @@ export default function Enroll() {
         )}
 
         {phase === 'error' && (
-          <div style={styles.card}>
-            <h2 style={{ ...styles.title, color: '#ff4444' }}>Something went wrong</h2>
+          <div style={ui.card}>
+            <h2 style={{ ...ui.title, color: '#ff4444' }}>Something went wrong</h2>
             <p style={styles.status}>{statusMsg}</p>
-            <button style={styles.cta} onClick={() => { setPhase('intro'); setSampleCount(0); setSamples([]); }}>
+            <button style={ui.cta} onClick={() => { setPhase('intro'); setSampleCount(0); setSamples([]); }}>
               Try Again
             </button>
           </div>

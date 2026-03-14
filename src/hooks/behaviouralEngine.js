@@ -672,6 +672,7 @@ export function cosineSimilarity(
 
   // Mouse / gesture component — only if we have enrollment data for it
   let mouseScore = null;
+  let mobileConfidence = 1;
   if (liveM && enrollM) {
     const liveVelZ   = liveM.velocitiesZ   || zNormalize(liveM.velocities   || []);
     const enrollVelZ = enrollM.velocitiesZ || zNormalize(enrollM.velocities || []);
@@ -710,13 +711,49 @@ export function cosineSimilarity(
       const extraScore = (touchPressureScore * 0.5) + (gyroScore * 0.5);
       mouseScore = mouseScore * 0.90 + extraScore * 0.10;
     }
+
+    // On mobile, weak gesture captures can create false positives if we trust
+    // keystrokes too much. Penalize sparse touch/motion coverage instead of
+    // fully rejecting so genuine users can still pass with solid captures.
+    const enrollTouchPoints = enrollM.touchPointCount || 0;
+    const liveTouchPoints = liveM.touchPointCount || 0;
+    const hasMobileEnrollment = enrollTouchPoints > 5 || (enrollM.avgGyroMag || 0) > 0;
+
+    if (hasMobileEnrollment) {
+      const touchCoverage = clamp01(safeDiv(liveTouchPoints, Math.max(enrollTouchPoints, 12)));
+      const touchFloor = liveTouchPoints >= 10 ? 1 : liveTouchPoints / 10;
+      const gyroCoverage = (enrollM.avgGyroMag || 0) > 0
+        ? clamp01(safeDiv(liveM.stdGyroMag || 0, Math.max(enrollM.stdGyroMag || 0, 0.05)))
+        : 1;
+      const pressureCoverage = enrollTouchPoints > 5
+        ? ratioSimilarity(
+            [liveM.stdTouchPressure || 0],
+            [Math.max(enrollM.stdTouchPressure || 0, 0.02)]
+          )
+        : 1;
+
+      mobileConfidence = (
+        touchCoverage * 0.45 +
+        touchFloor * 0.25 +
+        gyroCoverage * 0.20 +
+        pressureCoverage * 0.10
+      );
+
+      // Keep some forgiveness for noisy mobile hardware, but make thin captures
+      // materially harder to classify as authenticated.
+      mobileConfidence = 0.65 + mobileConfidence * 0.35;
+    }
   }
 
   // Mix in mouse/gesture (including mobile touch + motion) behavior when available.
   // Keystrokes remain the dominant signal, keeping scoring stable for existing enrollments.
-  const score = mouseScore != null
+  let score = mouseScore != null
     ? keyScore * 0.85 + mouseScore * 0.15
     : keyScore;
+
+  if (mouseScore != null) {
+    score *= mobileConfidence;
+  }
 
   console.log('[VAULTLESS AUTH DEBUG]');
   console.log('  Hold pattern (Pearson):', holdPatternScore.toFixed(3), '→ normalized:', hpNorm.toFixed(3));
@@ -725,6 +762,7 @@ export function cosineSimilarity(
   console.log('  Duration score:', durScore.toFixed(3));
   if (mouseScore != null) {
     console.log('  Mouse score:', mouseScore.toFixed(3));
+    console.log('  Mobile confidence:', mobileConfidence.toFixed(3));
   }
   console.log('  FINAL SCORE:', score.toFixed(3), '→ CLASSIFICATION:', classifyScore(score));
   console.log('  Live holdTimes:', liveK.holdTimes?.slice(0,5).map(n=>n.toFixed(0)));
@@ -802,6 +840,11 @@ function safeDivRatio(a, b) {
   return Math.min(a, b) / Math.max(a, b);
 }
 
+function safeDiv(a, b) {
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b === 0) return 0;
+  return a / b;
+}
+
 function mean(arr) {
   if (!arr || arr.length === 0) return 0;
   return arr.reduce((a, b) => a + b, 0) / arr.length;
@@ -829,6 +872,10 @@ function meanAcceleration(velocities) {
 function norm(val, min, max) {
   if (max === min) return 0;
   return Math.min(1, Math.max(0, (val - min) / (max - min)));
+}
+
+function clamp01(value) {
+  return Math.min(1, Math.max(0, value));
 }
 
 function padOrTrim(arr, len) {

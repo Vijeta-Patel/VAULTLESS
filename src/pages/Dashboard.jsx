@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useVaultless } from '../lib/VaultlessContext';
 import { useState } from 'react';
+import { useViewport } from '../hooks/useViewport';
 
 const FAKE_EMAILS = [
   { from: 'Google Security', subject: 'Your account was accessed from a new device', time: '2:14 PM', unread: true, preview: 'We noticed a sign-in to your account from a new location...', avatar: 'G', avatarBg: '#4285F4' },
@@ -24,18 +25,48 @@ const NAV_ITEMS = [
 export default function Dashboard() {
   const navigate = useNavigate();
   const { lastAuthScore, etherscanLinks, walletAddress, demoMode, clearEnrollment } = useVaultless();
+  const { isMobile, isTablet } = useViewport();
   const [activeNav, setActiveNav] = useState('Inbox');
   const [searchFocused, setSearchFocused] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [hoveredRow, setHoveredRow] = useState(null);
+  const compactLayout = isMobile || isTablet;
+  const ui = {
+    root: compactLayout ? { ...s.root, height: 'auto', minHeight: '100vh', overflow: 'visible' } : s.root,
+    topbar: compactLayout ? { ...s.topbar, height: 'auto', padding: '10px 12px', flexWrap: 'wrap', gap: 10 } : s.topbar,
+    topLeft: compactLayout ? { ...s.topLeft, minWidth: 0, flex: '1 1 auto' } : s.topLeft,
+    searchWrap: compactLayout ? { ...s.searchWrap, order: 3, width: '100%', maxWidth: '100%', minWidth: 0 } : s.searchWrap,
+    topRight: compactLayout ? { ...s.topRight, marginLeft: 0, gap: 2 } : s.topRight,
+    body: compactLayout ? { ...s.body, flexDirection: 'column', overflow: 'visible', gap: 8, padding: '0 8px 12px' } : s.body,
+    sidebar: compactLayout ? { ...s.sidebar, width: '100%', padding: '8px 0 0', overflow: 'visible' } : s.sidebar,
+    composeBtn: isMobile ? { ...s.composeBtn, width: '100%', justifyContent: 'center', margin: '8px 0 12px', padding: '14px 18px' } : s.composeBtn,
+    nav: compactLayout ? { ...s.nav, flexDirection: 'row', overflowX: 'auto', paddingBottom: 4 } : s.nav,
+    navItem: compactLayout ? { ...s.navItem, marginRight: 8, borderRadius: 18, padding: '0 14px', whiteSpace: 'nowrap', flexShrink: 0 } : s.navItem,
+    labelsHeader: compactLayout ? { ...s.labelsHeader, padding: '8px 0' } : s.labelsHeader,
+    labelItem: compactLayout ? { ...s.labelItem, padding: '4px 0' } : s.labelItem,
+    emailPane: compactLayout ? { ...s.emailPane, borderRadius: 16, borderRight: '1px solid #e0e0e0', margin: 0, minHeight: 0 } : s.emailPane,
+    emailToolbar: isMobile ? { ...s.emailToolbar, padding: '8px 10px' } : s.emailToolbar,
+    tabBar: compactLayout ? { ...s.tabBar, overflowX: 'auto' } : s.tabBar,
+    tab: isMobile ? { ...s.tab, padding: '12px 14px', whiteSpace: 'nowrap', flexShrink: 0 } : s.tab,
+    emailRow: isMobile ? { ...s.emailRow, display: 'grid', gridTemplateColumns: '92px minmax(0, 1fr)', alignItems: 'start', height: 'auto', padding: '12px', gap: 0, rowGap: 4, columnGap: 8 } : s.emailRow,
+    emailRowLeft: isMobile ? { ...s.emailRowLeft, width: 84, paddingTop: 2, gap: 6, gridColumn: '1', gridRow: '1 / span 3', alignSelf: 'start', justifyContent: 'flex-start' } : s.emailRowLeft,
+    emailFrom: isMobile ? { ...s.emailFrom, width: 'auto', fontSize: 12, gridColumn: '2', marginBottom: 2 } : s.emailFrom,
+    emailBody: isMobile ? { ...s.emailBody, minWidth: 0, whiteSpace: 'normal', lineHeight: 1.35, gridColumn: '2', marginBottom: 2 } : s.emailBody,
+    emailTime: isMobile ? { ...s.emailTime, fontSize: 11, textAlign: 'left', gridColumn: '2', color: '#6f7277' } : s.emailTime,
+    securityPanel: compactLayout ? { ...s.securityPanel, width: '100%', borderRadius: 16, margin: 0, maxHeight: 'none', padding: isMobile ? '18px 16px' : s.securityPanel.padding } : s.securityPanel,
+    metric: isMobile ? { ...s.metric, padding: '10px 12px' } : s.metric,
+    eventLog: isMobile ? { ...s.eventLog, padding: 10 } : s.eventLog,
+    panelFooter: isMobile ? { ...s.panelFooter, gap: 10 } : s.panelFooter,
+    profileMenu: isMobile ? { ...s.profileMenu, width: 240, right: -8 } : s.profileMenu,
+  };
 
   return (
-    <div style={s.root}>
+    <div style={ui.root}>
 
       {/* ── TOP BAR ── */}
-      <div style={s.topbar}>
+      <div style={ui.topbar}>
         {/* Left: hamburger + Gmail logo */}
-        <div style={s.topLeft}>
+        <div style={ui.topLeft}>
           <button style={s.iconBtn}>☰</button>
           <div style={s.gmailLogo}>
             <span style={{ color: '#4285F4' }}>G</span>
@@ -47,7 +78,7 @@ export default function Dashboard() {
         </div>
 
         {/* Center: search bar */}
-        <div style={{ ...s.searchWrap, ...(searchFocused ? s.searchWrapFocused : {}) }}>
+        <div style={{ ...ui.searchWrap, ...(searchFocused ? s.searchWrapFocused : {}) }}>
           <span style={s.searchIcon}>🔍</span>
           <input
             style={s.searchInput}
@@ -59,14 +90,14 @@ export default function Dashboard() {
         </div>
 
         {/* Right: icons + avatar */}
-        <div style={s.topRight}>
+        <div style={ui.topRight}>
           <button style={s.iconBtn} title="Help">?</button>
           <button style={s.iconBtn} title="Settings">⚙</button>
           <button style={s.iconBtn} title="Google apps">⊞</button>
           <div style={s.avatarWrap} onClick={() => setShowProfileMenu(!showProfileMenu)}>
             <div style={s.avatar}>H</div>
             {showProfileMenu && (
-              <div style={s.profileMenu}>
+              <div style={ui.profileMenu}>
                 <div style={s.profileMenuHeader}>
                   <div style={s.profileMenuAvatar}>H</div>
                   <div>
@@ -85,19 +116,19 @@ export default function Dashboard() {
       </div>
 
       {/* ── BODY ── */}
-      <div style={s.body}>
+      <div style={ui.body}>
 
         {/* ── SIDEBAR ── */}
-        <div style={s.sidebar}>
-          <button style={s.composeBtn}>
+        <div style={ui.sidebar}>
+          <button style={ui.composeBtn}>
             <span style={s.composePlus}>+</span>
             <span>Compose</span>
           </button>
-          <nav style={s.nav}>
+          <nav style={ui.nav}>
             {NAV_ITEMS.map(item => (
               <div
                 key={item.label}
-                style={{ ...s.navItem, ...(activeNav === item.label ? s.navItemActive : {}) }}
+                style={{ ...ui.navItem, ...(activeNav === item.label ? s.navItemActive : {}) }}
                 onClick={() => setActiveNav(item.label)}
               >
                 <span style={s.navIcon}>{item.icon}</span>
@@ -108,9 +139,9 @@ export default function Dashboard() {
           </nav>
 
           <div style={s.sidebarDivider} />
-          <div style={s.labelsHeader}>Labels</div>
+          <div style={ui.labelsHeader}>Labels</div>
           {['VAULTLESS', 'Blockchain', 'Work'].map(l => (
-            <div key={l} style={s.labelItem}>
+            <div key={l} style={ui.labelItem}>
               <span style={s.labelDot} />
               {l}
             </div>
@@ -118,9 +149,9 @@ export default function Dashboard() {
         </div>
 
         {/* ── EMAIL LIST ── */}
-        <div style={s.emailPane}>
+        <div style={ui.emailPane}>
           {/* Toolbar */}
-          <div style={s.emailToolbar}>
+          <div style={ui.emailToolbar}>
             <div style={s.toolbarLeft}>
               <input type="checkbox" style={s.checkbox} />
               <button style={s.toolbarBtn}>↻</button>
@@ -134,9 +165,9 @@ export default function Dashboard() {
           </div>
 
           {/* Tab bar */}
-          <div style={s.tabBar}>
+          <div style={ui.tabBar}>
             {['Primary', 'Promotions', 'Social', 'Updates'].map((tab, i) => (
-              <div key={tab} style={{ ...s.tab, ...(i === 0 ? s.tabActive : {}) }}>
+              <div key={tab} style={{ ...ui.tab, ...(i === 0 ? s.tabActive : {}) }}>
                 {tab}
               </div>
             ))}
@@ -148,31 +179,32 @@ export default function Dashboard() {
               key={i}
               style={{
                 ...s.emailRow,
+                ...ui.emailRow,
                 background: hoveredRow === i ? '#f2f6fc' : email.unread ? '#fff' : '#f6f8fc',
                 fontWeight: email.unread ? 600 : 400,
               }}
               onMouseEnter={() => setHoveredRow(i)}
               onMouseLeave={() => setHoveredRow(null)}
             >
-              <div style={s.emailRowLeft}>
+              <div style={ui.emailRowLeft}>
                 <input type="checkbox" style={s.checkbox} onClick={e => e.stopPropagation()} />
                 <span style={s.starBtn}>☆</span>
                 <div style={{ ...s.emailAvatar, background: email.avatarBg }}>
                   {email.avatar}
                 </div>
               </div>
-              <div style={s.emailFrom}>{email.from}</div>
-              <div style={s.emailBody}>
+              <div style={ui.emailFrom}>{email.from}</div>
+              <div style={ui.emailBody}>
                 <span style={s.emailSubject}>{email.subject}</span>
                 <span style={s.emailPreview}> — {email.preview}</span>
               </div>
-              <div style={s.emailTime}>{email.time}</div>
+              <div style={ui.emailTime}>{email.time}</div>
             </div>
           ))}
         </div>
 
         {/* ── VAULTLESS PANEL ── */}
-        <div style={s.securityPanel}>
+        <div style={ui.securityPanel}>
           <div style={s.panelHeader}>
             <span style={s.panelLogo}>⬡</span>
             <span style={s.panelTitle}>VAULTLESS</span>
@@ -184,14 +216,14 @@ export default function Dashboard() {
           </div>
 
           {lastAuthScore !== null && (
-            <div style={s.metric}>
+            <div style={ui.metric}>
               <div style={s.metricLabel}>MATCH SCORE</div>
               <div style={s.metricValue}>{(lastAuthScore * 100).toFixed(1)}%</div>
             </div>
           )}
 
           {walletAddress && (
-            <div style={s.metric}>
+            <div style={ui.metric}>
               <div style={s.metricLabel}>WALLET</div>
               <div style={{ ...s.metricValue, fontSize: 10, wordBreak: 'break-all' }}>
                 {walletAddress.slice(0, 20)}...
@@ -200,7 +232,7 @@ export default function Dashboard() {
           )}
 
           <div style={s.metricLabel}>CHAIN EVENTS</div>
-          <div style={s.eventLog}>
+          <div style={ui.eventLog}>
             {etherscanLinks.length === 0 ? (
               <div style={s.noEvents}>No events yet</div>
             ) : (
@@ -214,7 +246,7 @@ export default function Dashboard() {
             )}
           </div>
 
-          <div style={s.panelFooter}>
+          <div style={ui.panelFooter}>
             <button style={s.logoutBtn} onClick={() => navigate('/gmail')}>Sign Out</button>
             <button style={s.reenrollBtn} onClick={() => { clearEnrollment(); navigate('/enroll'); }}>
               Re-enroll Identity
