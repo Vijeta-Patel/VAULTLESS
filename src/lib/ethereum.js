@@ -30,9 +30,15 @@ function getInjectedEthereum() {
   return ethereum;
 }
 
+function isMetaMaskProvider(provider) {
+  return Boolean(provider?.isMetaMask);
+}
+
 export function isMobileBrowser() {
   if (typeof navigator === 'undefined') return false;
-  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const touchMac = navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+  return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || touchMac;
 }
 
 export function canOpenMetaMaskDeepLink() {
@@ -65,8 +71,9 @@ export function openMetaMaskDeepLink() {
 export async function getProvider(options = {}) {
   const { autoRedirectMobile = true } = options;
   const injectedEthereum = getInjectedEthereum();
+  const hasMetaMask = isMetaMaskProvider(injectedEthereum);
 
-  if (!injectedEthereum) {
+  if (!injectedEthereum || !hasMetaMask) {
     if (autoRedirectMobile && isMobileBrowser() && canOpenMetaMaskDeepLink()) {
       openMetaMaskDeepLink();
       throw new Error('Opening MetaMask. If nothing happens, open this site from the MetaMask in-app browser.');
@@ -74,6 +81,10 @@ export async function getProvider(options = {}) {
 
     if (isMobileBrowser()) {
       throw new Error('MetaMask was not detected. Open this site inside the MetaMask in-app browser.');
+    }
+
+    if (injectedEthereum && !hasMetaMask) {
+      throw new Error('A different wallet was detected. Open this site in MetaMask to continue.');
     }
 
     throw new Error('MetaMask not found');
