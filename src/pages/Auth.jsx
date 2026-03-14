@@ -21,6 +21,24 @@ export default function Auth() {
   const [graphData, setGraphData] = useState([]);
   const [statusMsg, setStatusMsg] = useState('');
   const [stressScore, setStressScore] = useState(0);
+  const [motionAvailable, setMotionAvailable] = useState(false);
+  const [sensorDiag, setSensorDiag] = useState({
+    platform: 'unknown',
+    browser: 'unknown',
+    hasDeviceMotion: false,
+    hasDeviceOrientation: false,
+    isSecureContext: false,
+    motionPermission: 'unknown',
+    orientationPermission: 'unknown',
+    motionEvents: 0,
+    orientationEvents: 0,
+    touchEvents: 0,
+    lastMotionEventAt: null,
+    lastOrientationEventAt: null,
+    lastTouchEventAt: null,
+    captureStartedAt: null,
+  });
+  const [sensorRequesting, setSensorRequesting] = useState(false);
   const inputRef = useRef(null);
 
   const keystroke = useKeystrokeDNA();
@@ -33,7 +51,34 @@ export default function Auth() {
       mouse.reset();
       mouse.startCapture();
     }
-  }, [phase]);
+  }, [phase, keystroke, mouse]);
+
+  useEffect(() => {
+    if (phase !== 'typing') return;
+    const onTouchStartWindow = (e) => mouse.onTouchStart(e);
+    const onTouchMoveWindow = (e) => mouse.onTouchMove(e);
+    const onTouchEndWindow = () => mouse.onTouchEnd();
+    window.addEventListener('touchstart', onTouchStartWindow, { passive: true });
+    window.addEventListener('touchmove', onTouchMoveWindow, { passive: true });
+    window.addEventListener('touchend', onTouchEndWindow, { passive: true });
+    return () => {
+      window.removeEventListener('touchstart', onTouchStartWindow);
+      window.removeEventListener('touchmove', onTouchMoveWindow);
+      window.removeEventListener('touchend', onTouchEndWindow);
+    };
+  }, [phase, mouse.onTouchStart, mouse.onTouchMove, mouse.onTouchEnd]);
+
+  useEffect(() => {
+    setMotionAvailable(mouse.motionSupported);
+  }, [mouse.motionSupported]);
+
+  useEffect(() => {
+    if (phase !== 'typing') return;
+    const interval = setInterval(() => {
+      setSensorDiag({ ...mouse.getDiagnostics() });
+    }, 250);
+    return () => clearInterval(interval);
+  }, [phase, mouse.getDiagnostics]);
 
   useEffect(() => {
     if (keystroke.events.length > 0) {
@@ -53,14 +98,35 @@ export default function Auth() {
     }
   };
 
+  const requestSensors = async () => {
+    setSensorRequesting(true);
+    try {
+      const granted = await mouse.requestSensorAccess();
+      if (!granted) {
+        setStatusMsg('Could not enable motion sensors. You can continue, but mobile verification will be weaker.');
+      } else {
+        setStatusMsg('Motion sensors enabled.');
+      }
+    } finally {
+      setSensorRequesting(false);
+    }
+  };
+
   const processAuth = async () => {
     setPhase('scoring');
 
     const kData = keystroke.extractVector(PHRASE);
     const mData = mouse.extractVector();
 
-    if (!kData || !enrollmentVector) {
+    if (!enrollmentVector) {
       setStatusMsg('No enrollment found. Please enroll first.');
+      setPhase('ready');
+      return;
+    }
+
+    if (!kData) {
+      setStatusMsg('Not enough typing data captured. Try the phrase again more naturally.');
+      setPhase('typing');
       return;
     }
 
@@ -181,6 +247,31 @@ export default function Auth() {
     duress: { icon: '⚠', label: 'DURESS DETECTED', color: '#ffaa00' },
     rejected: { icon: '✗', label: 'IDENTITY REJECTED', color: '#ff4444' },
   };
+  const motionNeedsGesture = sensorDiag.motionPermission === 'requires-user-gesture';
+  const orientationNeedsGesture = sensorDiag.orientationPermission === 'requires-user-gesture';
+  const insecureContext =
+    sensorDiag.motionPermission === 'insecure-context' ||
+    sensorDiag.orientationPermission === 'insecure-context';
+  const sensorDenied =
+    sensorDiag.motionPermission === 'denied' ||
+    sensorDiag.orientationPermission === 'denied' ||
+    sensorDiag.motionPermission === 'error' ||
+    sensorDiag.orientationPermission === 'error';
+  const androidChromeNeedsManualEnable =
+    sensorDiag.platform === 'android' &&
+    sensorDiag.browser === 'chrome' &&
+    sensorDiag.hasDeviceMotion &&
+    !motionAvailable;
+  const showEnableSensors = motionNeedsGesture || orientationNeedsGesture || androidChromeNeedsManualEnable;
+  const sensorsEnabled = motionAvailable || sensorDiag.motionPermission === 'granted' || sensorDiag.orientationPermission === 'granted';
+  const isMobilePlatform = sensorDiag.platform === 'ios' || sensorDiag.platform === 'android';
+  const hasSensorApi = sensorDiag.hasDeviceMotion || sensorDiag.hasDeviceOrientation;
+  const showMobileSensorUi = isMobilePlatform && hasSensorApi;
+  const sensorBlockedHint = insecureContext
+    ? 'Motion sensors need a secure connection. Open the app over HTTPS and try again.'
+    : sensorDiag.platform === 'android' && sensorDiag.browser === 'chrome'
+      ? 'Sensor access is blocked. In Chrome Android, allow Motion sensors in Site settings, then reload.'
+      : 'Sensor access is blocked. Enable motion/orientation access in browser settings, then reload.';
   const ui = {
     header: isMobile ? { ...styles.header, padding: '16px 18px' } : styles.header,
     container: isMobile ? { ...styles.container, padding: '28px 12px 40px' } : styles.container,
@@ -222,6 +313,40 @@ export default function Auth() {
               <h2 style={ui.title}>Type the phrase</h2>
               <div style={ui.phrase}>"{PHRASE}"</div>
               <p style={styles.hint}>Press Enter when done</p>
+
+              {showMobileSensorUi && (
+                <div style={styles.sensorInfoCard}>
+                  <div style={styles.sensorInfoText}>
+                    Motion Sensors: <span style={{ color: sensorsEnabled ? '#00ff88' : '#ffb366' }}>{sensorsEnabled ? 'Enabled' : 'Optional'}</span>
+                  </div>
+                  {!sensorsEnabled && (
+                    <div style={styles.sensorInfoSubtext}>
+                      Enable them to match your enrollment capture more closely.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {showMobileSensorUi && showEnableSensors && (
+                <div style={styles.sensorActionBox}>
+                  <div style={styles.sensorActionText}>
+                    Tap to enable motion sensors on this device before verifying.
+                  </div>
+                  <button
+                    style={styles.sensorEnableBtn}
+                    onClick={requestSensors}
+                    disabled={sensorRequesting}
+                  >
+                    {sensorRequesting ? 'Enabling Sensors...' : 'Enable Sensors'}
+                  </button>
+                </div>
+              )}
+
+              {showMobileSensorUi && sensorDenied && (
+                <div style={styles.sensorWarning}>
+                  {sensorBlockedHint}
+                </div>
+              )}
 
               <input
                 ref={inputRef}
@@ -340,4 +465,11 @@ const styles = {
   status: { color: '#666', fontSize: 13, marginTop: 16 },
   warning: { background: '#ff444411', border: '1px solid #ff444433', borderRadius: 6, padding: '12px 16px', color: '#ff8888', fontSize: 13, marginBottom: 24 },
   inlineLink: { background: 'none', border: 'none', color: '#ff8888', textDecoration: 'underline', cursor: 'pointer', fontSize: 13 },
+  sensorInfoCard: { marginBottom: 16, background: '#0b0f0b', border: '1px solid #1e2a1e', borderRadius: 6, padding: '10px 12px', textAlign: 'left' },
+  sensorInfoText: { color: '#9fb89f', fontSize: 12 },
+  sensorInfoSubtext: { color: '#6f7f6f', fontSize: 11, marginTop: 4 },
+  sensorActionBox: { marginBottom: 16, background: '#0f1a12', border: '1px solid #1f3d2a', borderRadius: 6, padding: '10px 12px', textAlign: 'left' },
+  sensorActionText: { color: '#8ed8ae', fontSize: 12, marginBottom: 8 },
+  sensorEnableBtn: { background: '#00ff88', color: '#000', border: 'none', padding: '8px 14px', borderRadius: 4, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: "'Courier New', monospace" },
+  sensorWarning: { marginBottom: 16, background: '#2a120f', border: '1px solid #5c2a23', borderRadius: 6, padding: '10px 12px', color: '#ffb09f', fontSize: 12, textAlign: 'left', lineHeight: 1.4 },
 };
