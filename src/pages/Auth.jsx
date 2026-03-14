@@ -51,7 +51,7 @@ export default function Auth() {
       mouse.reset();
       mouse.startCapture();
     }
-  }, [phase, keystroke, mouse]);
+  }, [phase, keystroke.reset, mouse.reset, mouse.startCapture]);
 
   useEffect(() => {
     if (phase !== 'typing') return;
