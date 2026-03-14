@@ -248,9 +248,11 @@ export default function Dashboard() {
 
           <div style={ui.panelFooter}>
             <button style={s.logoutBtn} onClick={() => navigate('/gmail')}>Sign Out</button>
-            <button style={s.reenrollBtn} onClick={() => { clearEnrollment(); navigate('/enroll'); }}>
-              Re-enroll Identity
-            </button>
+            {demoMode && (
+              <button style={s.reenrollBtn} onClick={() => { clearEnrollment(); navigate('/enroll'); }}>
+                Re-enroll Identity
+              </button>
+            )}
             {demoMode && (
               <button style={s.duressTestBtn} onClick={() => navigate('/auth')}>
                 Test Duress →
