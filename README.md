@@ -781,7 +781,7 @@ The scoring weights in `behaviouralEngine.js` can be adjusted if needed:
 
 <div align="center">
 
-*your password is how you move*
+⬡ *your password is how you move* ⬡
 
 **[▶ Video Demo](https://youtu.be/H1GDiib1YAI?si=nnAmtng34_nXSFHa)** &nbsp;·&nbsp; **[🌐 Visit Site](https://vaultless-sys.vercel.app/)** &nbsp;·&nbsp; **[🏆 Devfolio](https://devfolio.co/projects/vaultless-dea4)**
 
